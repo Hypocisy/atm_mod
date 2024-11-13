@@ -1,0 +1,11 @@
+{
+  "menu.atm_mod.title": "自动取款机",
+  "block.atm_mod.atm_block": "自动取款机",
+  "item.atm_mod.copper_coin": "铜币",
+  "item.atm_mod.sliver_coin": "银币",
+  "item.atm_mod.gold_coin": "金币",
+  "tooltip.atm_mod.total_value": "总价值：",
+  "tooltip.atm_mod.value": "单个价值: ",
+  "screen.atm_mod.deposit": "取出 %s",
+  "screen.atm_mod.withdraw": "存入 %s"
+}

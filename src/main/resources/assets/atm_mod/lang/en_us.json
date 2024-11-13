@@ -1,0 +1,11 @@
+{
+  "menu.atm_mod.title": "Atm",
+  "block.atm_mod.atm_block": "ATM Block",
+  "item.atm_mod.copper_coin": "Copper coin",
+  "item.atm_mod.sliver_coin": "Sliver coin",
+  "item.atm_mod.gold_coin": "Gold coin",
+  "tooltip.atm_mod.total_value": "Total Value: ",
+  "tooltip.atm_mod.value": "Value: ",
+  "screen.atm_mod.deposit": "deposit %s",
+  "screen.atm_mod.withdraw": "withdraw %s"
+}
