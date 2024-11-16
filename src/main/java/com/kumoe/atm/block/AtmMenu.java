@@ -30,7 +30,7 @@ public class AtmMenu extends AbstractContainerMenu {
         this.e = (this.containerRows - 4) * 18;
         // add output slots
         for (int slot = 0; slot < 6; ++slot) { // 渲染一行6个槽, 在第三行开始渲染
-            this.addSlot(new CustomSlot(pContainer, slot, 8 + slot * 18, 18 * 3));
+            this.addSlot(new CustomSlot(((AtmBlockEntity) pContainer).getItemStackHandler(), slot, 8 + slot * 18, 18 * 3));
         }
         addPlayerSlots(pPlayerInventory, 1);
         this.container.startOpen(pPlayerInventory.player);

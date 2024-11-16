@@ -30,6 +30,14 @@ public class Coin extends Item {
         };
     }
 
+    public static Coin getCoinByType(CoinType type) {
+        return switch (type) {
+            case COPPER -> AtmRegistries.COPPER.get();
+            case SILVER -> AtmRegistries.SILVER.get();
+            case GOLD -> AtmRegistries.GOLD.get();
+        };
+    }
+
     @Override
     public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
         if (AtmConfig.enableSwap) {
@@ -38,7 +46,7 @@ public class Coin extends Item {
             boolean isShiftKeyDown = pPlayer.isShiftKeyDown();
 
             // Define conversion logic based on whether the player is holding shift
-            if (!isShiftKeyDown && count >= 10) {
+            if (!isShiftKeyDown && count >= 10 && type != CoinType.GOLD) {
                 // Convert to higher denomination (e.g., 10 copper -> 1 silver)
                 stackInHand.shrink(10);
                 ItemHandlerHelper.giveItemToPlayer(pPlayer, new ItemStack(getCoinByType(type, false), 1));

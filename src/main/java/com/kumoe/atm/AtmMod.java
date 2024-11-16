@@ -5,6 +5,7 @@ import com.kumoe.atm.block.AtmScreen;
 import com.kumoe.atm.config.AtmConfig;
 import com.kumoe.atm.config.Config;
 import com.kumoe.atm.item.ModItemModelProvider;
+import com.kumoe.atm.network.NetworkHandler;
 import com.kumoe.atm.registry.AtmRegistries;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.screens.MenuScreens;
@@ -14,6 +15,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -35,6 +37,7 @@ public class AtmMod {
         context.getModEventBus().addListener(this::onClientSetup);
         context.getModEventBus().addListener(this::onGatherData);
         context.getModEventBus().addListener(this::onModConfigLoad);
+        context.getModEventBus().addListener(this::onCommonSetup);
         context.registerConfig(ModConfig.Type.SERVER, configured.getRight());
     }
 
@@ -42,7 +45,7 @@ public class AtmMod {
         return instance;
     }
 
-    public void onModConfigLoad(ModConfigEvent event) {
+    private void onModConfigLoad(ModConfigEvent event) {
         ModConfig config = event.getConfig();
         if (config.getSpec() == AtmMod.getInstance().getConfigSpec()) {
             AtmMod.LOGGER.debug("Loading " + AtmMod.MODID + " config");
@@ -58,8 +61,12 @@ public class AtmMod {
         generator.addProvider(event.includeClient(), new ModItemModelProvider(packOutput, MODID, existing));
     }
 
-    public void onClientSetup(FMLClientSetupEvent event) {
+    private void onClientSetup(FMLClientSetupEvent event) {
         MenuScreens.register(AtmRegistries.ATM_MENU.get(), AtmScreen::new);
+    }
+
+    private void onCommonSetup(final FMLCommonSetupEvent event) {
+        NetworkHandler.register();
     }
 
     public Config getConfig() {

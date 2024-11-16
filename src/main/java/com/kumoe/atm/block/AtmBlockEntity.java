@@ -1,5 +1,7 @@
 package com.kumoe.atm.block;
 
+import com.kumoe.atm.item.Coin;
+import com.kumoe.atm.network.DepositPacket;
 import com.kumoe.atm.registry.AtmRegistries;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
@@ -15,14 +17,18 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class AtmBlockEntity extends BaseContainerBlockEntity {
-    protected NonNullList<ItemStack> items = NonNullList.withSize(6, ItemStack.EMPTY);
-    private UUID ownerUuid;
     private static final String OWN_KEY = "ownEntity.playerUuid";
+    private final NonNullList<ItemStack> items = NonNullList.withSize(6, ItemStack.EMPTY);
+    private final ItemStackHandler itemStackHandler = new ItemStackHandler(items);
+    private UUID ownerUuid;
 
     public AtmBlockEntity(BlockPos pPos, BlockState pBlockState) {
         super(AtmRegistries.ATM_BLOCK_ENTITY.get(), pPos, pBlockState);
@@ -40,7 +46,7 @@ public class AtmBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public int getContainerSize() {
-        return items.size();
+        return itemStackHandler.getSlots();
     }
 
     @Override
@@ -50,7 +56,7 @@ public class AtmBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public @NotNull ItemStack getItem(int pSlot) {
-        return items.get(pSlot);
+        return itemStackHandler.getStackInSlot(pSlot);
     }
 
     @Override
@@ -65,7 +71,7 @@ public class AtmBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public void setItem(int pSlot, ItemStack pStack) {
-        items.set(pSlot, pStack);
+        itemStackHandler.setStackInSlot(pSlot, pStack);
     }
 
     @Override
@@ -81,6 +87,7 @@ public class AtmBlockEntity extends BaseContainerBlockEntity {
     @Override
     public void load(CompoundTag pTag) {
         super.load(pTag);
+        ContainerHelper.loadAllItems(pTag, this.items);
         if (!pTag.isEmpty() && pTag.contains(OWN_KEY)) {
             ownerUuid = pTag.getUUID(OWN_KEY);
         }
@@ -102,5 +109,23 @@ public class AtmBlockEntity extends BaseContainerBlockEntity {
 
     public void setOwnerUuid(UUID ownerUuid) {
         this.ownerUuid = ownerUuid;
+    }
+
+    public ItemStackHandler getItemStackHandler() {
+        return itemStackHandler;
+    }
+
+    public List<DepositPacket.SlotData> getSlotDataList(ItemStackHandler itemStackHandler) {
+        List<DepositPacket.SlotData> slotDataList = new ArrayList<>();
+        for (var i = 0; i < itemStackHandler.getSlots(); i++) {
+            var stack = itemStackHandler.getStackInSlot(i);
+            if (stack.getItem() instanceof Coin coin) {
+                slotDataList.add(new DepositPacket.SlotData(coin.getType(), stack.getCount()));
+            }
+        }
+        return slotDataList;
+    }
+    public List<DepositPacket.SlotData> getSlotDataList(){
+        return getSlotDataList(itemStackHandler);
     }
 }
