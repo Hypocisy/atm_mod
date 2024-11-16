@@ -1,7 +1,7 @@
 package com.kumoe.atm.block;
 
 import com.kumoe.atm.item.Coin;
-import com.kumoe.atm.network.DepositPacket;
+import com.kumoe.atm.network.packet.DepositPacket;
 import com.kumoe.atm.registry.AtmRegistries;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;

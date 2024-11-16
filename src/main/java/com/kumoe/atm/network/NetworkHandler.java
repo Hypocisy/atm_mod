@@ -1,6 +1,9 @@
 package com.kumoe.atm.network;
 
 import com.kumoe.atm.AtmMod;
+import com.kumoe.atm.network.packet.DepositPacket;
+import com.kumoe.atm.network.packet.QueryPlayerBalance;
+import com.kumoe.atm.network.packet.WithdrawPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
@@ -21,10 +24,9 @@ public class NetworkHandler {
                 .clientAcceptedVersions(s -> true)
                 .serverAcceptedVersions(s -> true)
                 .simpleChannel();
-        INSTANCE.registerMessage(0, DepositPacket.class, DepositPacket::encode, DepositPacket::decode, DepositPacket::handle);
-        INSTANCE.registerMessage(1, WithdrawPacket.class, WithdrawPacket::encode, WithdrawPacket::decode, WithdrawPacket::handle);
-        INSTANCE.registerMessage(2, QueryPlayerBalance.class, QueryPlayerBalance::encode, QueryPlayerBalance::decode, QueryPlayerBalance::handle);
-
+        INSTANCE.registerMessage(getId(), DepositPacket.class, DepositPacket::encode, DepositPacket::decode, DepositPacket::handle);
+        INSTANCE.registerMessage(getId(), WithdrawPacket.class, WithdrawPacket::encode, WithdrawPacket::decode, WithdrawPacket::handle);
+        INSTANCE.registerMessage(getId(), QueryPlayerBalance.class, QueryPlayerBalance::encode, QueryPlayerBalance::decode, QueryPlayerBalance::handle);
     }
 
     public static SimpleChannel getInstance() {

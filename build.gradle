@@ -180,7 +180,7 @@ tasks.named('jar', Jar).configure {
         ])
     }
     // set jar output
-    destinationDirectory.set(file("${projectDir}/${project.name}-output"))
+    destinationDirectory.set(file("C:\\Users\\11379\\Desktop\\forge\\mods"))
 
     // This is the preferred method to reobfuscate your jar file
     finalizedBy 'reobfJar'

@@ -1,10 +1,10 @@
 package com.kumoe.atm.block;
 
 import com.kumoe.atm.AtmMod;
-import com.kumoe.atm.network.DepositPacket;
 import com.kumoe.atm.network.NetworkHandler;
-import com.kumoe.atm.network.QueryPlayerBalance;
-import com.kumoe.atm.network.WithdrawPacket;
+import com.kumoe.atm.network.packet.DepositPacket;
+import com.kumoe.atm.network.packet.QueryPlayerBalance;
+import com.kumoe.atm.network.packet.WithdrawPacket;
 import com.kumoe.atm.uitls.ModUtils;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -62,29 +62,55 @@ public class AtmScreen extends AbstractContainerScreen<AtmMenu> {
             var blockPos = this.atmBlockEntity.getBlockPos();
             var uuid = this.player.getUUID();
             var network = NetworkHandler.getInstance();
-            switch (id) {
-                case 0 ->
-                    // get 1 silver
-                        network.sendToServer(WithdrawPacket.create(uuid, 1, blockPos));
-                case 1 ->
-                    // get 1 gold
-                        network.sendToServer(WithdrawPacket.create(uuid, 1, blockPos));
-                case 2 ->
-                    // get 10 gold
-                {
-                    network.sendToServer(new QueryPlayerBalance(uuid, 0d));
-                    network.sendToServer(WithdrawPacket.create(uuid, 10, blockPos));
-                }
-                default -> {
-                    // withdraw coin
-                    if (!atmBlockEntity.getSlotDataList().isEmpty()) {
-                        // Query player balance
+            var packet = new QueryPlayerBalance(uuid, 0, false);
+            network.sendToServer(packet);
+            var cachedBalance = QueryPlayerBalance.cachedBalance;
+            var itemStackHandler = atmBlockEntity.getItemStackHandler();
 
-                        network.sendToServer(DepositPacket.create(this.player.getUUID(), atmBlockEntity.getSlotDataList(atmBlockEntity.getItemStackHandler()), blockPos));
+            switch (id) {
+                case 0 -> {
+                    // Withdraw coin
+                    if (cachedBalance > 0d) {
+                        network.sendToServer(WithdrawPacket.create(uuid, 10, blockPos));
+                    } else {
+                        player.closeContainer();
+                        player.sendSystemMessage(Component.literal("you don't have enough money to withdraw"));
+                    }
+                }
+                case 1 -> {
+                    // Withdraw coin
+                    if (cachedBalance > 0d) {
+                        network.sendToServer(WithdrawPacket.create(uuid, 100, blockPos));
+                    } else {
+                        player.closeContainer();
+                        player.sendSystemMessage(Component.literal("you don't have enough money to withdraw"));
+                    }
+                }
+                case 2 -> {
+                    // Withdraw coin
+                    if (cachedBalance > 0d) {
+                        network.sendToServer(WithdrawPacket.create(uuid, 1000, blockPos));
+                    } else {
+                        player.closeContainer();
+                        player.sendSystemMessage(Component.literal("you don't have enough money to withdraw"));
+                    }
+                }
+                case 3 -> {
+                    // Deposit coin
+                    if (!atmBlockEntity.getSlotDataList().isEmpty()) {
+                        network.sendToServer(DepositPacket.create(uuid, atmBlockEntity.getSlotDataList(itemStackHandler), blockPos));
                     }
                 }
             }
         }
+    }
+
+    double depositIdToPrice(int id) {
+        return switch (id) {
+            case 0 -> 10;
+            case 1 -> 100;
+            default -> 1000;
+        };
     }
 
     @Override

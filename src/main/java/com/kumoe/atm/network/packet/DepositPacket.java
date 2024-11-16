@@ -1,4 +1,4 @@
-package com.kumoe.atm.network;
+package com.kumoe.atm.network.packet;
 
 import com.kumoe.atm.block.AtmBlockEntity;
 import com.kumoe.atm.item.CoinType;
@@ -51,11 +51,15 @@ public class DepositPacket {
         NetworkEvent.Context ctx = supplier.get();
         ctx.enqueueWork(() -> {
             // remove sold items
-            if (ctx.getDirection().getReceptionSide().isServer()) {
-                if (ctx.getSender().level().getBlockEntity(pos) instanceof AtmBlockEntity bin) {
+            var player = ctx.getSender();
+            if (player != null) {
+                var level = player.level();
+                if (!level.isClientSide()) {
+                    if (level.getBlockEntity(pos) instanceof AtmBlockEntity bin) {
 //                    bin.getSlotDataList().forEach(slotData -> AtmMod.LOGGER.info(slotData.toString()));
-                    bin.clearContent();
-                    bin.setChanged();
+                        bin.clearContent();
+                        bin.setChanged();
+                    }
                 }
             }
         });

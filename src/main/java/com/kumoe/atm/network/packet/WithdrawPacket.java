@@ -1,12 +1,18 @@
-package com.kumoe.atm.network;
+package com.kumoe.atm.network.packet;
 
 import com.kumoe.atm.AtmMod;
 import com.kumoe.atm.block.AtmBlockEntity;
+import com.kumoe.atm.config.AtmConfig;
 import com.kumoe.atm.item.Coin;
+import com.kumoe.atm.network.NetworkHandler;
+import com.kumoe.atm.registry.AtmRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.PacketDistributor;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -56,9 +62,37 @@ public class WithdrawPacket {
         ctx.enqueueWork(() -> {
             // remove sold items
             if (ctx.getDirection().getReceptionSide().isServer()) {
-                if (ctx.getSender().level().getBlockEntity(pos) instanceof AtmBlockEntity bin) {
+                var player = ctx.getSender();
+                if (player != null && player.level().getBlockEntity(pos) instanceof AtmBlockEntity bin) {
                     AtmMod.LOGGER.debug("price {}", price);
-                    bin.clearContent();
+                    var playerUUID = player.getUUID();
+
+                    if (QueryPlayerBalance.cachedBalance < price) {
+                        return;
+                    }
+                    ItemStack stackToAdd = ItemStack.EMPTY;
+
+                    if (price == AtmConfig.sliverValue) {
+                        stackToAdd = new ItemStack(AtmRegistries.SILVER.get());
+                    } else if (price == AtmConfig.goldValue) {
+                        stackToAdd = new ItemStack(AtmRegistries.GOLD.get(), 1);
+                    } else if (price == AtmConfig.goldValue * 10) {
+                        stackToAdd = new ItemStack(AtmRegistries.GOLD.get(), 10);
+                    }
+
+                    // insert a stack to right slot, or give it to player slot
+                    var stackHandler = bin.getItemStackHandler();
+                    for (int i = 0; i < stackHandler.getSlots(); i++) {
+                        var stackInSlot = stackHandler.getStackInSlot(i);
+                        if (stackInSlot.getCount() < 64 && stackToAdd.getCount() + stackInSlot.getCount() <= 64) {
+                            stackHandler.insertItem(i, stackToAdd, false);
+                            break;
+                        } else if (i == stackHandler.getSlots() - 1) {
+                            ItemHandlerHelper.giveItemToPlayer(player, stackToAdd);
+                            break;
+                        }
+                    }
+
                     bin.setChanged();
                 }
             }
