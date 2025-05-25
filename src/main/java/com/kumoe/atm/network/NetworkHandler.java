@@ -2,7 +2,7 @@ package com.kumoe.atm.network;
 
 import com.kumoe.atm.AtmMod;
 import com.kumoe.atm.network.packet.DepositPacket;
-import com.kumoe.atm.network.packet.QueryPlayerBalance;
+import com.kumoe.atm.network.packet.PlayerBalancePacket;
 import com.kumoe.atm.network.packet.WithdrawPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
@@ -26,18 +26,18 @@ public class NetworkHandler {
                 .simpleChannel();
         INSTANCE.registerMessage(getId(), DepositPacket.class, DepositPacket::encode, DepositPacket::decode, DepositPacket::handle);
         INSTANCE.registerMessage(getId(), WithdrawPacket.class, WithdrawPacket::encode, WithdrawPacket::decode, WithdrawPacket::handle);
-        INSTANCE.registerMessage(getId(), QueryPlayerBalance.class, QueryPlayerBalance::encode, QueryPlayerBalance::decode, QueryPlayerBalance::handle);
+        INSTANCE.registerMessage(getId(), PlayerBalancePacket.class, PlayerBalancePacket::encode, PlayerBalancePacket::decode, PlayerBalancePacket::handle);
     }
 
     public static SimpleChannel getInstance() {
         return INSTANCE;
     }
 
-    public <MSG> void sendToServer(MSG msg) {
+    public static <MSG> void sendToServer(MSG msg) {
         INSTANCE.sendToServer(msg);
     }
 
-    public <MSG> void sendToPlayer(PacketDistributor.PacketTarget with, MSG packet) {
+    public static <MSG> void sendToPlayer(PacketDistributor.PacketTarget with, MSG packet) {
         INSTANCE.send(with, packet);
     }
 }

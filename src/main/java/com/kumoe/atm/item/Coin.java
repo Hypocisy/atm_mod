@@ -44,7 +44,6 @@ public class Coin extends Item {
             ItemStack stackInHand = pPlayer.getItemInHand(pUsedHand);
             int count = stackInHand.getCount();
             boolean isShiftKeyDown = pPlayer.isShiftKeyDown();
-
             // Define conversion logic based on whether the player is holding shift
             if (!isShiftKeyDown && count >= 10 && type != CoinType.GOLD) {
                 // Convert to higher denomination (e.g., 10 copper -> 1 silver)

@@ -7,5 +7,7 @@
   "tooltip.atm_mod.total_value": "总价值：",
   "tooltip.atm_mod.value": "单个价值: ",
   "screen.atm_mod.deposit": "取出 %s",
-  "screen.atm_mod.withdraw": "存入 %s"
+  "screen.atm_mod.withdraw": "存入全部",
+  "screen.atm_mod.not_enough_money": "你没有足够的钱取出",
+  "gui.atm_mod.currently_money": " %d"
 }

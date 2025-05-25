@@ -1,4 +1,4 @@
-package com.kumoe.atm.item;
+package com.kumoe.atm.datagen;
 
 import com.kumoe.atm.registry.AtmRegistries;
 import net.minecraft.data.PackOutput;

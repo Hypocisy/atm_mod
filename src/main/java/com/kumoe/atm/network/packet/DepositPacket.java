@@ -2,8 +2,10 @@ package com.kumoe.atm.network.packet;
 
 import com.kumoe.atm.block.AtmBlockEntity;
 import com.kumoe.atm.item.CoinType;
+import com.kumoe.atm.uitls.PluginUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
@@ -38,6 +40,22 @@ public class DepositPacket {
         return new DepositPacket(playerUuid, slotDataList, pos);
     }
 
+    private static double getPriceByCoinType(CoinType coinType) {
+        return switch (coinType) {
+            case GOLD -> 100d;
+            case COPPER -> 1d;
+            case SILVER -> 10d;
+        };
+    }
+
+    private static double getTotalPriceBySlotDataList(List<SlotData> slotDataList) {
+        var totalPrice = 0d;
+        for (SlotData slotData : slotDataList) {
+            totalPrice += getPriceByCoinType(slotData.coinType) * slotData.count;
+        }
+        return totalPrice;
+    }
+
     public void encode(FriendlyByteBuf byteBuf) {
         byteBuf.writeUUID(playerUuid);
         byteBuf.writeInt(slotDataList.size());
@@ -51,12 +69,16 @@ public class DepositPacket {
         NetworkEvent.Context ctx = supplier.get();
         ctx.enqueueWork(() -> {
             // remove sold items
-            var player = ctx.getSender();
-            if (player != null) {
-                var level = player.level();
-                if (!level.isClientSide()) {
-                    if (level.getBlockEntity(pos) instanceof AtmBlockEntity bin) {
-//                    bin.getSlotDataList().forEach(slotData -> AtmMod.LOGGER.info(slotData.toString()));
+            if (ctx.getDirection().getReceptionSide().isServer()) {
+                var player = ctx.getSender();
+                if (player != null) {
+                    var level = player.level();
+
+                    if (level.getBlockEntity(pos) instanceof AtmBlockEntity bin && PluginUtils.checkBukkitInstalled()) {
+
+                        var totalPrice = getTotalPriceBySlotDataList(slotDataList);
+                        PluginUtils.depositPlayer(player, totalPrice);
+                        player.sendSystemMessage(Component.literal("存入x货币，账面余额: " + PluginUtils.getBalance(player)));
                         bin.clearContent();
                         bin.setChanged();
                     }

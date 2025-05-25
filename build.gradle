@@ -1,3 +1,14 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public' }
+    }
+    dependencies {
+        classpath "org.spongepowered:mixingradle:${mixingradle_version}"
+        classpath 'org.parchmentmc:librarian:1.+'
+    }
+}
 plugins {
     id 'eclipse'
     id 'idea'
@@ -12,6 +23,9 @@ group = mod_group_id
 base {
     archivesName = mod_id
 }
+apply plugin: 'maven-publish'
+apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'org.parchmentmc.librarian.forgegradle'
 
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -118,9 +132,33 @@ repositories {
 
     // If you have mod jar dependencies in ./libs, you can declare them as a repository like so.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html#sub:flat_dir_resolver
-    // flatDir {
-    //     dir 'libs'
-    // }
+    flatDir {
+        dir 'libs'
+    }
+    repositories {
+        maven {
+            name = 'Paper'
+            url = 'https://repo.papermc.io/repository/maven-public/'
+        }
+        maven {
+            name = 'Spigot'
+            url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+        }
+        maven { url 'https://jitpack.io' }
+        maven {
+            url "https://cursemaven.com"
+            content {
+                includeGroup "curse.maven"
+            }
+        }
+        maven {
+            url "https://maven.blamejared.com"
+        }
+        maven { url 'https://jitpack.io' }
+
+        mavenLocal()
+        mavenCentral()
+    }
 }
 
 dependencies {
@@ -145,6 +183,29 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+//    compileOnly 'com.mohistmc:mohistdev:1.20.1'
+//    implementation 'org.bukkit:bukkit:1.20.1-R0.1-SNAPSHOT' // 根据目标版本调整
+    compileOnly('io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT')
+    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
+    implementation fg.deobf("curse.maven:xaeros-minimap-263420:6012833")
+    implementation fg.deobf("curse.maven:balm-531761:5644976")
+//    implementation fg.deobf("curse.maven:balm-531761:5999476")
+    implementation fg.deobf("curse.maven:waystones-245755:5841750")
+//    implementation fg.deobf("curse.maven:glitchcore-955399:5787839")
+//    implementation fg.deobf("curse.maven:serene-seasons-291874:5790653")
+    implementation fileTree(dir: 'lib', include: ['*.jar'])
+
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:${mixin_extras_version}"))
+    if (rootMod.toBoolean()) {
+        implementation(jarJar("io.github.llamalad7:mixinextras-forge:${mixin_extras_version}")) {
+            transitive = false
+            jarJar.ranged(it, "[${mixin_extras_version},)")
+        }
+    } else {
+        implementation("io.github.llamalad7:mixinextras-forge:${mixin_extras_version}")
+    }
+    annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
+
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -153,11 +214,11 @@ dependencies {
 // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
-            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version, forge_version_range: forge_version_range,
+            minecraft_version   : minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version       : forge_version, forge_version_range: forge_version_range,
             loader_version_range: loader_version_range,
-            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
+            mod_id              : mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors         : mod_authors, mod_description: mod_description,
     ]
     inputs.properties replaceProperties
 
@@ -180,7 +241,7 @@ tasks.named('jar', Jar).configure {
         ])
     }
     // set jar output
-    destinationDirectory.set(file("C:\\Users\\11379\\Desktop\\forge\\mods"))
+//    destinationDirectory.set(file("C:\\Users\\11379\\Desktop\\forge\\mods"))
 
     // This is the preferred method to reobfuscate your jar file
     finalizedBy 'reobfJar'

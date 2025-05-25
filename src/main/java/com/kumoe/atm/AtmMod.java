@@ -1,16 +1,21 @@
 package com.kumoe.atm;
 
-import com.kumoe.atm.block.AtmBlockStateProvider;
 import com.kumoe.atm.block.AtmScreen;
+import com.kumoe.atm.compat.WayStoneCompat;
 import com.kumoe.atm.config.AtmConfig;
 import com.kumoe.atm.config.Config;
-import com.kumoe.atm.item.ModItemModelProvider;
+import com.kumoe.atm.datagen.AtmBlockStateProvider;
+import com.kumoe.atm.datagen.ModBlockTagGenerator;
+import com.kumoe.atm.datagen.ModItemModelProvider;
+import com.kumoe.atm.datagen.ModLootTableProvider;
 import com.kumoe.atm.network.NetworkHandler;
 import com.kumoe.atm.registry.AtmRegistries;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.data.event.GatherDataEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
@@ -57,8 +62,11 @@ public class AtmMod {
         var generator = event.getGenerator();
         var existing = event.getExistingFileHelper();
         var packOutput = generator.getPackOutput();
+        var lookupProvider = event.getLookupProvider();
         generator.addProvider(event.includeClient(), new AtmBlockStateProvider(packOutput, MODID, existing));
         generator.addProvider(event.includeClient(), new ModItemModelProvider(packOutput, MODID, existing));
+        generator.addProvider(event.includeServer(), ModLootTableProvider.create(packOutput));
+        generator.addProvider(event.includeServer(), new ModBlockTagGenerator(packOutput, lookupProvider, existing));
     }
 
     private void onClientSetup(FMLClientSetupEvent event) {
@@ -67,6 +75,9 @@ public class AtmMod {
 
     private void onCommonSetup(final FMLCommonSetupEvent event) {
         NetworkHandler.register();
+        if (ModList.get().isLoaded("waystones")) {
+            MinecraftForge.EVENT_BUS.addListener(WayStoneCompat::onWayStoneTeleport);
+        }
     }
 
     public Config getConfig() {

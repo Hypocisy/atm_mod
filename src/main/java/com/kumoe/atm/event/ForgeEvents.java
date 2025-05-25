@@ -1,13 +1,16 @@
 package com.kumoe.atm.event;
 
 import com.kumoe.atm.AtmMod;
+import com.kumoe.atm.config.AtmConfig;
 import com.kumoe.atm.item.Coin;
 import com.kumoe.atm.network.NetworkHandler;
-import com.kumoe.atm.network.packet.QueryPlayerBalance;
+import com.kumoe.atm.network.packet.PlayerBalancePacket;
+import com.kumoe.atm.uitls.PluginUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -17,8 +20,52 @@ import net.minecraftforge.network.PacketDistributor;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-@Mod.EventBusSubscriber(modid = AtmMod.MODID)
+@Mod.EventBusSubscriber(modid = AtmMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ForgeEvents {
+    public static boolean hasBukkit = false;
+
+    @SubscribeEvent
+    public static void onPlayerJoinWorld(PlayerEvent.PlayerLoggedInEvent event) {
+        var player = event.getEntity();
+        var level = player.level();
+
+        if (!level.isClientSide()) {
+
+            if (PluginUtils.checkBukkitInstalled()) {
+                double balance = PluginUtils.getBalance(player);
+                hasBukkit = true;
+                NetworkHandler.sendToPlayer(PacketDistributor.PLAYER.with(() -> (ServerPlayer) player), new PlayerBalancePacket(player.getUUID(), balance));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (hasBukkit) {
+            var tickCount = event.getServer().getTickCount();
+            var players = event.getServer().getPlayerList().getPlayers();
+            var isServer = event.side.isServer();
+            if (isServer && tickCount % (20 * AtmConfig.updateInterval) == 0) {
+                players.forEach(serverPlayer -> {
+                    if (PluginUtils.checkBukkitInstalled()) {
+                        double cmiBalance = PluginUtils.getBalance(serverPlayer);
+                        double cachedBalance = PlayerBalancePacket.getBalance(serverPlayer).orElse(-1d);
+
+                        // if balance different or no cached balance, update balance to client
+                        if (cmiBalance != cachedBalance || cachedBalance < 0) {
+                            PlayerBalancePacket.updateServerCache(serverPlayer, cmiBalance);
+                            AtmMod.LOGGER.debug("Balance: {} ;\nPre Cached Balance: {};\n Currently cached balance {}", cmiBalance, cachedBalance, PlayerBalancePacket.getBalance(serverPlayer).orElse(cmiBalance));
+                            AtmMod.LOGGER.debug("Sending update client money packet to {}", serverPlayer.getName().getString());
+                            NetworkHandler.sendToPlayer(
+                                    PacketDistributor.PLAYER.with(() -> serverPlayer),
+                                    new PlayerBalancePacket(serverPlayer, cmiBalance)
+                            );
+                        }
+                    }
+                });
+            }
+        }
+    }
 
     @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
@@ -32,11 +79,5 @@ public class ForgeEvents {
                 event.getToolTip().add(Component.translatable("tooltip.atm_mod.value").append("" + BigDecimal.valueOf(coin.getAmount()).setScale(2, RoundingMode.HALF_UP).doubleValue()));
             }
         }
-    }
-
-    @SubscribeEvent
-    public static void onPlayerJoin(final PlayerEvent.PlayerLoggedInEvent event) {
-        var packet = new QueryPlayerBalance(event.getEntity().getUUID(), 0, false);
-        NetworkHandler.getInstance().send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) event.getEntity()), packet);
     }
 }

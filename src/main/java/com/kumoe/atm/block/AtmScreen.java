@@ -3,7 +3,7 @@ package com.kumoe.atm.block;
 import com.kumoe.atm.AtmMod;
 import com.kumoe.atm.network.NetworkHandler;
 import com.kumoe.atm.network.packet.DepositPacket;
-import com.kumoe.atm.network.packet.QueryPlayerBalance;
+import com.kumoe.atm.network.packet.PlayerBalancePacket;
 import com.kumoe.atm.network.packet.WithdrawPacket;
 import com.kumoe.atm.uitls.ModUtils;
 import net.minecraft.client.gui.GuiGraphics;
@@ -17,128 +17,153 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 
 import java.io.File;
+import java.util.UUID;
 
-public class AtmScreen extends AbstractContainerScreen<AtmMenu> {
+public class AtmScreen extends AbstractContainerScreen<AtmMenu> implements PlayerBalancePacket.BalanceUpdateListener {
     private static final ResourceLocation BG = new ResourceLocation(AtmMod.MODID, "textures/gui/atm.png");
     private final Container container;
     private final AtmBlockEntity atmBlockEntity;
     private final Player player;
+    private double currentBalance;
 
     public AtmScreen(AtmMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
         this.player = pMenu.playerInventory.player;
         this.container = pMenu.container;
         this.atmBlockEntity = (AtmBlockEntity) this.container;
+        this.currentBalance = PlayerBalancePacket.getBalance(player.getUUID()).orElse(0.0);
+        PlayerBalancePacket.setBalanceUpdateListener(this);
     }
 
     @Override
     protected void init() {
         super.init();
-        var deposit_width = 25;
-        var deposit_height = 14;
-        var withdraw_width = 18;
-        var withdraw_height = 12;
-        var deposit_1 = new ImageButtonWithId(0, leftPos + 7, topPos + 21, deposit_width, deposit_height, 176, 0, deposit_height, BG, this::onPress);
-        var deposit_2 = new ImageButtonWithId(1, leftPos + 36, topPos + 21, deposit_width, deposit_height, 176 + deposit_width, 0, deposit_height, BG, this::onPress);
-        var deposit_3 = new ImageButtonWithId(2, leftPos + 66, topPos + 21, deposit_width, deposit_height, 176 + deposit_width * 2, 0, deposit_height, BG, this::onPress);
-        var withdraw = new ImageButtonWithId(3, leftPos + 133, topPos + 59, withdraw_width, withdraw_height, 176, deposit_height * 2, withdraw_height, BG, this::onPress);
-        deposit_1.setTooltip(Tooltip.create(Component.translatable("screen.atm_mod.deposit", 10)));
-        deposit_2.setTooltip(Tooltip.create(Component.translatable("screen.atm_mod.deposit", 100)));
-        deposit_3.setTooltip(Tooltip.create(Component.translatable("screen.atm_mod.deposit", 1000)));
-        withdraw.setTooltip(Tooltip.create(Component.translatable("screen.atm_mod.withdraw")));
-        addRenderableWidget(deposit_1);
-        addRenderableWidget(deposit_2);
-        addRenderableWidget(deposit_3);
-        addRenderableWidget(withdraw);
+        initButtons();
+    }
 
+    private void initButtons() {
+
+        addDepositButton(0, 7, 10);
+        addDepositButton(1, 36, 100);
+        addDepositButton(2, 66, 1000);
+        addWithdrawButton(133, 59);
+    }
+
+    private void addDepositButton(int id, int x, int amount) {
+        int depositWidth = 25;
+        int depositHeight = 14;
+
+        var button = new ImageButtonID(
+                id,
+                leftPos + x,
+                topPos + 21,
+                depositWidth,
+                depositHeight,
+                176 + (id * 25),
+                0,
+                14,
+                BG,
+                this::onPress
+        );
+        button.setTooltip(Tooltip.create(Component.translatable("screen.atm_mod.deposit", amount)));
+        addRenderableWidget(button);
+    }
+
+    private void addWithdrawButton(int x, int y) {
+        int withdrawWidth = 18;
+        int withdrawHeight = 12;
+        var button = new ImageButtonID(
+                3,
+                leftPos + x,
+                topPos + y,
+                withdrawWidth,
+                withdrawHeight,
+                176,
+                28,
+                12,
+                BG,
+                this::onPress
+        );
+        button.setTooltip(Tooltip.create(Component.translatable("screen.atm_mod.withdraw")));
+        addRenderableWidget(button);
     }
 
     private void onPress(Button button) {
-        // 1000 -> 10 gold
-        // 100 -> 1 gold
-        // 10 -> 1 silver
-        if (button instanceof ImageButtonWithId buttonWithId) {
-            var id = buttonWithId.getId();
-            var blockPos = this.atmBlockEntity.getBlockPos();
-            var uuid = this.player.getUUID();
-            var network = NetworkHandler.getInstance();
-            var packet = new QueryPlayerBalance(uuid, 0, false);
-            network.sendToServer(packet);
-            var cachedBalance = QueryPlayerBalance.cachedBalance;
-            var itemStackHandler = atmBlockEntity.getItemStackHandler();
+        if (!(button instanceof ImageButtonID buttonWithId)) return;
 
-            switch (id) {
-                case 0 -> {
-                    // Withdraw coin
-                    if (cachedBalance > 0d) {
-                        network.sendToServer(WithdrawPacket.create(uuid, 10, blockPos));
-                    } else {
-                        player.closeContainer();
-                        player.sendSystemMessage(Component.literal("you don't have enough money to withdraw"));
-                    }
-                }
-                case 1 -> {
-                    // Withdraw coin
-                    if (cachedBalance > 0d) {
-                        network.sendToServer(WithdrawPacket.create(uuid, 100, blockPos));
-                    } else {
-                        player.closeContainer();
-                        player.sendSystemMessage(Component.literal("you don't have enough money to withdraw"));
-                    }
-                }
-                case 2 -> {
-                    // Withdraw coin
-                    if (cachedBalance > 0d) {
-                        network.sendToServer(WithdrawPacket.create(uuid, 1000, blockPos));
-                    } else {
-                        player.closeContainer();
-                        player.sendSystemMessage(Component.literal("you don't have enough money to withdraw"));
-                    }
-                }
-                case 3 -> {
-                    // Deposit coin
-                    if (!atmBlockEntity.getSlotDataList().isEmpty()) {
-                        network.sendToServer(DepositPacket.create(uuid, atmBlockEntity.getSlotDataList(itemStackHandler), blockPos));
-                    }
-                }
-            }
+        var id = buttonWithId.getId();
+        var blockPos = atmBlockEntity.getBlockPos();
+        var userUuid = player.getUUID();
+        var ownerUuid = atmBlockEntity.getOwnerUuid();
+        var itemStackHandler = atmBlockEntity.getItemStackHandler();
+
+        switch (id) {
+            case 0, 1, 2 -> handleDeposit(id, userUuid, ownerUuid, blockPos);
+            case 3 -> handleWithdraw(userUuid, ownerUuid, blockPos, itemStackHandler);
+            default -> throw new IllegalStateException("Unexpected case id: " + id);
         }
     }
 
-    double depositIdToPrice(int id) {
-        return switch (id) {
+    private void handleDeposit(int id, UUID userUuid, UUID ownerUuid, net.minecraft.core.BlockPos blockPos) {
+        int amount = switch (id) {
             case 0 -> 10;
             case 1 -> 100;
-            default -> 1000;
+            case 2 -> 1000;
+            default -> throw new IllegalStateException("Unexpected value: " + id);
         };
+
+        if (currentBalance > 0d) {
+            NetworkHandler.sendToServer(WithdrawPacket.create(ownerUuid, userUuid, amount, blockPos));
+            PlayerBalancePacket.requestUpdateCache(userUuid);
+        } else {
+            player.closeContainer();
+            player.sendSystemMessage(Component.translatable("screen.atm_mod.not_enough_money"));
+        }
+    }
+
+    private void handleWithdraw(UUID userUuid, UUID ownerUuid, net.minecraft.core.BlockPos blockPos,
+                                net.minecraftforge.items.ItemStackHandler itemStackHandler) {
+        if (!atmBlockEntity.getSlotDataList().isEmpty()) {
+            NetworkHandler.sendToServer(DepositPacket.create(ownerUuid,
+                    atmBlockEntity.getSlotDataList(itemStackHandler), blockPos));
+            PlayerBalancePacket.requestUpdateCache(userUuid);
+        }
     }
 
     @Override
-    public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        this.renderBackground(pGuiGraphics);
-        super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
-
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
+        super.render(graphics, mouseX, mouseY, partialTick);
+        renderTooltip(graphics, mouseX, mouseY);
     }
 
     @Override
-    protected void renderBg(GuiGraphics pGuiGraphics, float pPartialTick, int pMouseX, int pMouseY) {
-        pGuiGraphics.pose().pushPose();
-        pGuiGraphics.blit(BG, leftPos, topPos, 0, 0, 176, 166);
-        // todo render owner's icon and more info
+    protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+        graphics.pose().pushPose();
+        graphics.blit(BG, leftPos, topPos, 0, 0, 176, 166);
+        renderOwnerAvatar(graphics);
+        graphics.pose().popPose();
+    }
 
-        if (getBlockEntity() instanceof AtmBlockEntity atmBlockEntity) {
-            var ownerUuid = atmBlockEntity.getOwnerUuid();
-            File avatarFile = ModUtils.getAvatarFile(ownerUuid);
-            if (avatarFile.exists()) {
-                // render player avatar
-                ResourceLocation avatarLocation = ModUtils.loadPlayerAvatar(avatarFile, ownerUuid);
-                if (avatarLocation != null) {
-                    pGuiGraphics.blit(avatarLocation, leftPos + 135, topPos + 22, 0, 0, 16, 16, 16, 16);
-                }
+    private void renderOwnerAvatar(GuiGraphics graphics) {
+        if (!(getBlockEntity() instanceof AtmBlockEntity atmBlockEntity)) return;
+
+        var ownerUuid = atmBlockEntity.getOwnerUuid();
+        File avatarFile = ModUtils.getAvatarFile(ownerUuid);
+
+        if (avatarFile.exists()) {
+            ResourceLocation avatarLocation = ModUtils.loadPlayerAvatar(avatarFile, ownerUuid);
+            if (avatarLocation != null) {
+                graphics.blit(avatarLocation, leftPos + 135, topPos + 22, 0, 0, 16, 16, 16, 16);
             }
         }
-        pGuiGraphics.pose().popPose();
+    }
+
+    @Override
+    public void onBalanceUpdate(UUID playerUUID, double newBalance) {
+        if (playerUUID.equals(player.getUUID())) {
+            this.currentBalance = newBalance;
+        }
     }
 
     public Container getBlockEntity() {

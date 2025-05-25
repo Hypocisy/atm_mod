@@ -1,4 +1,4 @@
-package com.kumoe.atm.item;
+package com.kumoe.atm.datagen;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;

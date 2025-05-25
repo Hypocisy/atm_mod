@@ -1,5 +1,7 @@
-package com.kumoe.atm.block;
+package com.kumoe.atm.datagen;
 
+import com.kumoe.atm.block.AtmBlock;
+import com.kumoe.atm.block.AtmPart;
 import com.kumoe.atm.registry.AtmRegistries;
 import net.minecraft.data.PackOutput;
 import net.minecraftforge.client.model.generators.BlockStateProvider;
