@@ -37,7 +37,6 @@ public class AtmBlock extends BaseEntityBlock {
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(PART, AtmPart.LOWER));
     }
 
-
     @Nullable
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext pContext) {
@@ -109,7 +108,7 @@ public class AtmBlock extends BaseEntityBlock {
     public boolean canSurvive(BlockState pState, LevelReader pLevel, BlockPos pPos) {
         BlockPos blockpos = pPos.below();
         BlockState blockstate = pLevel.getBlockState(blockpos);
-        return pState.getValue(PART) == AtmPart.LOWER ? blockstate.isFaceSturdy(pLevel, blockpos, Direction.UP) : blockstate.is(this);
+        return pState.getValue(PART) == AtmPart.LOWER || blockstate.is(this);
     }
 
     @Override

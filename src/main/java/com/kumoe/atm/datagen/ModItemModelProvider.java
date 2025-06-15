@@ -12,6 +12,7 @@ public class ModItemModelProvider extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
+        basicItem(AtmRegistries.ATM_BLOCK.get().asItem());
         basicItem(AtmRegistries.COPPER.get());
         basicItem(AtmRegistries.GOLD.get());
         basicItem(AtmRegistries.SILVER.get());

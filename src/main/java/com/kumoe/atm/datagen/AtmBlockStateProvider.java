@@ -16,7 +16,7 @@ public class AtmBlockStateProvider extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
-        this.simpleBlockItem(AtmRegistries.ATM_BLOCK.get(), getExistingFile("block/atm_block"));
+//        this.simpleBlockWithItem(AtmRegistries.ATM_BLOCK.get(), getExistingFile("block/atm_block"));
         this.horizontalBlock(AtmRegistries.ATM_BLOCK.get(), blockState -> {
             AtmPart facing = blockState.getValue(AtmBlock.PART);
             return getExistingFile("block/atm_block_" + facing.getSerializedName());
